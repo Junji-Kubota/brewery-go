@@ -12,7 +12,7 @@
 <style>
 :root{
   --ground:#EEF1EE; --surface:#FFFFFF; --surface-2:#F5F7F5; --ink:#1B231F; --ink-2:#56615B; --line:#D9DFDB;
-  --amber:#C27316; --amber-soft:#F6E7D3; --shop:#2E6A70; --shop-soft:#DCECED;
+  --amber:#C27316; --amber-soft:#F6E7D3; --shop:#2E6A70; --shop-soft:#DCECED; --ship:#8C9590;
   --gold:#C99A0E; --silver:#8E989F; --bronze:#A8622F;
   --open:#2F7D4A; --closed:#9A5A4E; --focus:#C27316;
   --shadow:0 6px 24px rgba(27,35,31,.14);
@@ -24,7 +24,7 @@
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --ground:#121614; --surface:#1B211E; --surface-2:#222925; --ink:#E6ECE8; --ink-2:#9EABA4; --line:#2F3833;
-    --amber:#E39A3E; --amber-soft:#3A2A16; --shop:#6FB3B9; --shop-soft:#1C3234;
+    --amber:#E39A3E; --amber-soft:#3A2A16; --shop:#6FB3B9; --shop-soft:#1C3234; --ship:#6B746F;
     --gold:#E2B83A; --silver:#B3BCC2; --bronze:#CD8453; --open:#5DBB7D; --closed:#D08A7C;
     --shadow:0 6px 24px rgba(0,0,0,.45);
   }
@@ -32,7 +32,7 @@
 :root[data-theme="dark"]{
   color-scheme:dark;
   --ground:#121614; --surface:#1B211E; --surface-2:#222925; --ink:#E6ECE8; --ink-2:#9EABA4; --line:#2F3833;
-  --amber:#E39A3E; --amber-soft:#3A2A16; --shop:#6FB3B9; --shop-soft:#1C3234;
+  --amber:#E39A3E; --amber-soft:#3A2A16; --shop:#6FB3B9; --shop-soft:#1C3234; --ship:#6B746F;
   --gold:#E2B83A; --silver:#B3BCC2; --bronze:#CD8453; --open:#5DBB7D; --closed:#D08A7C;
   --shadow:0 6px 24px rgba(0,0,0,.45);
 }
@@ -74,6 +74,7 @@ button{font:inherit;color:inherit}
 .badge.b-gold{background:var(--gold)} .badge.b-silver{background:var(--silver)} .badge.b-bronze{background:var(--bronze)}
 .badge.b-none{background:var(--surface);border:2px solid var(--amber);color:var(--amber)}
 .badge.b-shop{background:var(--shop);border-radius:7px}
+.badge.b-ship{background:var(--ship);width:24px;height:24px;font-size:10px;margin:5px 3px 0}
 .item h3{margin:0;font-size:14px;font-weight:700;line-height:1.35}
 .meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink-2);margin-top:2px}
 .state{font-weight:700}
@@ -106,6 +107,7 @@ button{font:inherit;color:inherit}
 .pin.gold{background:var(--gold)} .pin.silver{background:var(--silver)} .pin.bronze{background:var(--bronze)}
 .pin.none{background:var(--amber)}
 .pin.shop{background:var(--shop);border-radius:7px}
+.pin.ship{background:var(--ship);transform:scale(.72);box-shadow:0 1px 3px rgba(0,0,0,.25)} .pin.ship.sel{transform:scale(.95)}
 .pin.drank{outline:3px solid var(--open);outline-offset:1px}
 .pin.sel{transform:scale(1.25)}
 .pinwrap{position:relative;width:28px;height:28px}
@@ -181,6 +183,7 @@ button{font:inherit;color:inherit}
         <button class="chip" id="f-drank" aria-pressed="false">飲んだ</button>
         <button class="chip" id="f-new" aria-pressed="false">まだ飲んでない</button>
         <button class="chip" id="f-want" aria-pressed="false">行きたい</button>
+        <button class="chip" id="f-drinkable" aria-pressed="true">飲める店だけ</button>
         <button class="chip" id="f-open" aria-pressed="false">営業中</button>
       </div>
     </div>
@@ -232,6 +235,7 @@ function toMin(t){var p=t.split(':');return +p[0]*60+ +p[1];}
 function fmt(m){return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
 function openState(p,now){
   if(p.closed) return {k:'closed',t:'閉店'};
+  if(p.service==='shipping') return {k:'unknown',t:'出荷専用'};
   if(!p.hours) return {k:'unknown',t:'営業時間 要確認'};
   var d=now.getDay(), m=now.getHours()*60+now.getMinutes();
   var today=p.hours[d]||[];
@@ -242,6 +246,7 @@ function openState(p,now){
 }
 function hoursText(p){
   if(p.closed) return '閉店';
+  if(p.service==='shipping') return '出荷専用（店舗営業なし）';
   if(!p.hours) return '要確認';
   var lines=[];
   for(var i=1;i<=7;i++){ var d=i%7, s=p.hours[d]; lines.push(DAYS[d]+'  '+(s.length? s.map(function(x){return fmt(x[0])+'-'+fmt(x[1]);}).join(', ') : '休')); }
@@ -329,9 +334,10 @@ map.addLayer(cluster);
 
 var selected=null, markerById={};
 function pinHtml(p){
-  var cls='pin '+(p.type==='shop'?'shop':p.tier)+(marks.drank[p.id]?' drank':'')+(selected===p.id?' sel':'');
-  var label=p.type==='shop'?'酒':(TIER_JP[p.tier]||'醸');
-  var pri=selected===p.id?0:({gold:1,silver:2,bronze:3,none:4,shop:5})[p.tier];
+  var ship=p.service==='shipping';
+  var cls='pin '+(p.type==='shop'?'shop':ship?'ship':p.tier)+(marks.drank[p.id]?' drank':'')+(selected===p.id?' sel':'');
+  var label=p.type==='shop'?'酒':ship?'出':(TIER_JP[p.tier]||'醸');
+  var pri=selected===p.id?0:ship?6:({gold:1,silver:2,bronze:3,none:4,shop:5})[p.tier];
   return '<div class="pinwrap" data-pri="'+pri+'"><div class="'+cls+'">'+label+'</div><span class="lbl '+(p.type==='shop'?'l-shop':'l-brew')+'">'+esc(shortName(p.name))+'</span></div>';
 }
 function shortName(n){ return n.replace(/（.*?）/g,'').trim(); }
@@ -381,7 +387,7 @@ function distText(m){
 }
 
 /* ---------- 絞り込み ---------- */
-var filt={brew:true,shop:true,open:false,want:false,drank:false,new:false};
+var filt={brew:true,shop:true,drinkable:true,open:false,want:false,drank:false,new:false};
 var ranks={gold:false,silver:false,bronze:false,none:false};
 var query='';
 function norm(s){ return String(s||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'')
@@ -391,6 +397,7 @@ function pass(p,now){
   if(p.type==='brewery'&&!filt.brew) return false;
   if(p.type==='shop'&&!filt.shop) return false;
   if(rankOn()&&(p.type==='shop'||!ranks[p.tier])) return false;   // ランク指定時は酒屋を除く
+  if(filt.drinkable&&(p.service==='shipping'||p.closed)) return false;   // 飲める店だけ：出荷専用と閉店を除く
   if(filt.open&&openState(p,now).k!=='open') return false;
   if(filt.want&&!marks.want[p.id]) return false;
   if(filt.drank&&!marks.drank[p.id]) return false;
@@ -399,7 +406,7 @@ function pass(p,now){
   return true;
 }
 function refresh(){ renderMarkers(); renderList(); }
-['brew','shop','open','want','drank','new'].forEach(function(k){
+['brew','shop','drinkable','open','want','drank','new'].forEach(function(k){
   var b=document.getElementById('f-'+k);
   b.addEventListener('click',function(){
     filt[k]=!filt[k];
@@ -440,6 +447,7 @@ var listEl=document.getElementById('list'), countEl=document.getElementById('cou
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function badge(p){
   if(p.type==='shop') return '<div class="badge b-shop" aria-label="酒屋">酒</div>';
+  if(p.service==='shipping') return '<div class="badge b-ship" aria-label="出荷専用の醸造所">出</div>';
   return '<div class="badge b-'+p.tier+'" aria-label="'+(p.tier==='none'?'醸造所':TIER_JP[p.tier]+'ランクの醸造所')+'">'+(TIER_JP[p.tier]||'醸')+'</div>';
 }
 function renderList(){
@@ -494,7 +502,7 @@ function renderDetail(){
     '<div class="meta"><span class="state '+st.k+'">'+st.t+'</span><span>'+dt.main+'・'+dt.sub+'</span></div>'+
     '<div class="marks">'+(p.type==='brewery'?'<button class="mk drank" data-mk="drank" aria-pressed="'+!!marks.drank[p.id]+'">飲んだ</button>':'')+
     '<button class="mk want" data-mk="want" aria-pressed="'+!!marks.want[p.id]+'">行きたい</button></div>'+
-    '<dl class="kv"><dt>種別</dt><dd>'+(p.type==='shop'?'酒屋':'醸造所')+'</dd>'+
+    '<dl class="kv"><dt>種別</dt><dd>'+(p.type==='shop'?'酒屋':'醸造所')+(p.service==='shipping'?'<br>出荷専用（店舗営業なし）':'')+'</dd>'+
     '<dt>住所</dt><dd>'+esc(p.addr)+'</dd>'+
     '<dt>創業</dt><dd>'+(p.founded?p.founded+'年':'不明')+(p.foundNote?'（'+esc(p.foundNote)+'）':'')+'</dd>'+
     rank+
