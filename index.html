@@ -220,7 +220,7 @@ function parseHours(spec){
     var m=part.match(/^([日月火水木金土\-]+)(.+)$/); if(!m) return;
     var days=[], s=m[1];
     for(var i=0;i<s.length;i++){
-      if(s[i+1]==='-'){ var a=DAYS.indexOf(s[i]), b=DAYS.indexOf(s[i+2]); for(var k=a;k!==(b+1)%7;k=(k+1)%7) days.push(k); i+=2; }
+      if(s[i+1]==='-'){ var a=DAYS.indexOf(s[i]), b=DAYS.indexOf(s[i+2]); for(var k=a;;k=(k+1)%7){ days.push(k); if(k===b) break; } i+=2; }
       else days.push(DAYS.indexOf(s[i]));
     }
     var spans=m[2].split(',').map(function(r){var t=r.split('-');return [toMin(t[0]),toMin(t[1])];});
@@ -231,6 +231,7 @@ function parseHours(spec){
 function toMin(t){var p=t.split(':');return +p[0]*60+ +p[1];}
 function fmt(m){return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
 function openState(p,now){
+  if(p.closed) return {k:'closed',t:'閉店'};
   if(!p.hours) return {k:'unknown',t:'営業時間 要確認'};
   var d=now.getDay(), m=now.getHours()*60+now.getMinutes();
   var today=p.hours[d]||[];
@@ -240,6 +241,7 @@ function openState(p,now){
   return {k:'closed',t:'休業'};
 }
 function hoursText(p){
+  if(p.closed) return '閉店';
   if(!p.hours) return '要確認';
   var lines=[];
   for(var i=1;i<=7;i++){ var d=i%7, s=p.hours[d]; lines.push(DAYS[d]+'  '+(s.length? s.map(function(x){return fmt(x[0])+'-'+fmt(x[1]);}).join(', ') : '休')); }
