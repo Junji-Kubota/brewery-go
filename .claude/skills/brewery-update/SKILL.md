@@ -30,6 +30,7 @@ description: Brewery GO の店データ（data/places.js）を調べて更新す
 - `awards`: 直近の審査会の受賞数 `{c:"JGBA",g:金,s:銀,b:銅}`。c は JGBA / IBC / WBC のいずれか
 - `guide:true`: ビアEXPO2025 出展203社（`data/guide203.csv`）に載っている醸造所
 - `yomi`: 英語名の店はひらがなの読みを入れる（検索用）
+- `bulk:true`: 一括登録した未確認の店。個別に調べて営業時間などを確認したら `bulk` を消し、`checked` と `src` を確認したページに更新する
 
 ## 位置（緯度経度）の調べ方
 国土地理院の住所検索APIを使う（無料・キー不要）。
