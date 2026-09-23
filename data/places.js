@@ -37,7 +37,7 @@ window.PLACES = [
 {id:"kunisawa",type:"brewery",name:"國澤麦酒",addr:"東京都港区新橋5-31-7 Kビルディング 2F",lat:35.662285,lng:139.755051,founded:2022,
  h:"月-金17:30-22:30;土15:00-21:00;日15:00-20:00",awards:[{c:"JGBA",g:0,s:1,b:0}],src:"https://beeralltheway.com/brewery/kunisawa-brewing"},
 {id:"breadale",yomi:"ぶれっどえーる こむぎのほし",type:"brewery",name:"Bread Ale Brewery（コムギノホシ仙川）",addr:"東京都調布市仙川町3-3-4 ウィステリア仙川2",lat:35.664288,lng:139.584106,founded:2024,
- h:"月水木金土日9:00-20:00",awards:[{c:"IBC",g:0,s:1,b:0}],note:"パン屋併設。パンが売り切れると閉店。",src:"https://www.city.chofu.lg.jp/010040/p078195.html"},
+ h:"月水木金土日9:00-20:00",awards:[{c:"JGBA",g:1,s:1,b:0},{c:"IBC",g:0,s:1,b:0}],note:"パン屋併設。パンが売り切れると閉店。",src:"https://www.city.chofu.lg.jp/010040/p078195.html"},
 {id:"aleworks",yomi:"とうきょうえーるわーくす",type:"brewery",name:"Tokyo Aleworks 板橋",addr:"東京都板橋区板橋1-8-4 板橋Cask Village 1F",lat:35.746521,lng:139.716385,founded:2018,
  h:"火-金15:00-23:00;土12:00-23:00;日12:00-22:00",src:"https://tokyoaleworks.com/taproom_itabashi"},
 {id:"futako",guide:true,type:"brewery",name:"ふたこビール醸造所",addr:"東京都世田谷区玉川3-13-7 柳小路南角2F",lat:35.613506,lng:139.625092,founded:2018,foundNote:"醸造所の開業。活動開始は2015年",
@@ -54,7 +54,7 @@ window.PLACES = [
  h:"水木16:00-22:00;金16:00-23:00;土日11:30-22:00",note:"調布ビアワークスのビールを出す直営の立ち飲み。",src:"https://www.city.chofu.lg.jp/010040/p078195.html"},
 // --- ビアEXPO2025（全国203社）掲載・東京近郊（2026-09-23追加。営業時間は未調査のものが多い） ---
 {"id":"nihaime","guide":true,"yomi":"にはいめ","type":"brewery","name":"2杯目のビール。","addr":"東京都中央区日本橋本町3-11-5 COMMISSARY NIHONBASHI 1F","lat":35.689209,"lng":139.777252,"founded":null,"h":"月-日11:30-22:00","src":"https://0423craft.beer/expo2025/"},
-{"id":"kanpai","guide":true,"yomi":"かんぱい","type":"brewery","name":"カンパイ！ブルーイング","addr":"東京都文京区関口1-28-12 リバーサイドテラス","lat":35.71048,"lng":139.72525,"founded":null,"h":null,"src":"https://0423craft.beer/expo2025-brewery/3357/","note":"タップルームは週末のみ開くとされるが、公式に定まった営業時間は確認できず（告知は公式Instagram）。1階のビアバー「グランズー」は別店舗。","checked":"2026-09-23"},
+{"id":"kanpai","guide":true,"yomi":"かんぱい","type":"brewery","name":"カンパイ！ブルーイング","addr":"東京都文京区関口1-28-12 リバーサイドテラス","lat":35.71048,"lng":139.72525,"founded":null,"h":null,"src":"https://0423craft.beer/expo2025-brewery/3357/","note":"タップルームは週末のみ開くとされるが、公式に定まった営業時間は確認できず（告知は公式Instagram）。1階のビアバー「グランズー」は別店舗。","checked":"2026-09-23","awards":[{"c":"JGBA","g":0,"s":1,"b":3}]},
 {"id":"miyata","guide":true,"yomi":"みやたびーる","type":"brewery","name":"Miyata Beer（宮多麦酒）","addr":"東京都墨田区横川3-12-19 松井ビル","lat":35.704464,"lng":139.813736,"founded":2014,"h":"金17:00-23:00;土日15:00-23:00","src":"https://0423craft.beer/expo2025/"},
 {"id":"yyg","guide":true,"yomi":"わいわいじー","type":"brewery","name":"Y.Y.G. BREWERY","addr":"東京都渋谷区代々木2-18-3 オーチュー第1ビル","lat":35.686054,"lng":139.696686,"founded":null,"h":"火-金17:00-23:00;土12:00-23:00;日12:00-22:00","note":"新宿駅南口近く。","src":"https://0423craft.beer/expo2025/"},
 {"id":"beerkobo","guide":true,"yomi":"びーるこうぼう","type":"brewery","name":"ビール工房 新宿","addr":"東京都新宿区西新宿1-26-2 新宿野村ビル B2","lat":35.692776,"lng":139.696732,"founded":2017,"h":"月-金15:00-22:30;土12:00-21:00","note":"日曜定休。","src":"https://0423craft.beer/expo2025/"},
