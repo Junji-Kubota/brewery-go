@@ -44,7 +44,8 @@ def main():
     b = sum(1 for p in places if p.get("type") == "brewery")
     nh = sum(1 for p in places if not p.get("h") and p.get("service") != "shipping" and not p.get("closed"))
     ns = sum(1 for p in places if p.get("service") == "shipping")
-    print(f"{len(places)}件（醸造所{b}・酒屋{len(places)-b}）／出荷専用 {ns}件／営業時間 要確認 {nh}件")
+    nbulk = sum(1 for p in places if p.get("bulk"))
+    print(f"{len(places)}件（醸造所{b}・酒屋{len(places)-b}）／出荷専用 {ns}件／一括登録（未確認） {nbulk}件／営業時間 要確認 {nh}件")
     for e in errors:
         print("NG", e)
     sys.exit(1 if errors else 0)
