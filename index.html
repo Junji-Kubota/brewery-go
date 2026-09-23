@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Brewery GO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{
+  --ground:#EEF1EE; --surface:#FFFFFF; --surface-2:#F5F7F5; --ink:#1B231F; --ink-2:#56615B; --line:#D9DFDB;
+  --amber:#C27316; --amber-soft:#F6E7D3; --shop:#2E6A70; --shop-soft:#DCECED;
+  --gold:#C99A0E; --silver:#8E989F; --bronze:#A8622F;
+  --open:#2F7D4A; --closed:#9A5A4E; --focus:#C27316;
+  --shadow:0 6px 24px rgba(27,35,31,.14);
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-disp:"Dela Gothic One","Zen Kaku Gothic New","Hiragino Sans",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#121614; --surface:#1B211E; --surface-2:#222925; --ink:#E6ECE8; --ink-2:#9EABA4; --line:#2F3833;
+    --amber:#E39A3E; --amber-soft:#3A2A16; --shop:#6FB3B9; --shop-soft:#1C3234;
+    --gold:#E2B83A; --silver:#B3BCC2; --bronze:#CD8453; --open:#5DBB7D; --closed:#D08A7C;
+    --shadow:0 6px 24px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#121614; --surface:#1B211E; --surface-2:#222925; --ink:#E6ECE8; --ink-2:#9EABA4; --line:#2F3833;
+  --amber:#E39A3E; --amber-soft:#3A2A16; --shop:#6FB3B9; --shop-soft:#1C3234;
+  --gold:#E2B83A; --silver:#B3BCC2; --bronze:#CD8453; --open:#5DBB7D; --closed:#D08A7C;
+  --shadow:0 6px 24px rgba(0,0,0,.45);
+}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55;overflow:hidden}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.app{position:fixed;inset:0;display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr}
+.bar{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:var(--surface);border-bottom:1px solid var(--line);z-index:500}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto}
+.brand h1{font-family:var(--f-disp);font-weight:400;font-size:20px;margin:0;letter-spacing:.02em}
+.brand span{color:var(--ink-2);font-size:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.filters{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.filters .chips+.chips{padding-left:14px;border-left:1px solid var(--line)}
+.search{flex:0 1 260px;min-width:0}
+.search input{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px}
+.search input:focus{outline:2px solid var(--focus);outline-offset:0;background:var(--surface)}
+.filters .chip{padding:4px 10px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chip .dot{width:8px;height:8px;border-radius:50%}
+.tally{font-size:12.5px;color:var(--ink-2);display:flex;gap:12px;align-items:center}
+.tally b{font-family:var(--f-num);color:var(--ink);font-weight:500}
+
+#map{grid-column:1;grid-row:2;background:var(--surface-2)}
+.panel{grid-column:2;grid-row:2;background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.panel-head{padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid var(--line)}
+.panel-head h2{margin:0;font-size:14px;font-weight:700}
+.panel-head small{color:var(--ink-2);font-size:12px}
+.list{overflow-y:auto;flex:1;padding:4px 0 calc(8px + env(safe-area-inset-bottom,0px))}
+.empty{padding:28px 16px;color:var(--ink-2);text-align:center}
+
+.item{display:grid;grid-template-columns:34px 1fr auto;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer;align-items:start}
+.item:hover,.item.sel{background:var(--surface-2)}
+.badge{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;margin-top:2px}
+.badge.b-gold{background:var(--gold)} .badge.b-silver{background:var(--silver)} .badge.b-bronze{background:var(--bronze)}
+.badge.b-none{background:var(--surface);border:2px solid var(--amber);color:var(--amber)}
+.badge.b-shop{background:var(--shop);border-radius:7px}
+.item h3{margin:0;font-size:14px;font-weight:700;line-height:1.35}
+.meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink-2);margin-top:2px}
+.state{font-weight:700}
+.state.open{color:var(--open)} .state.closed{color:var(--closed)} .state.unknown{color:var(--ink-2);font-weight:500}
+.dist{text-align:right;font-family:var(--f-num);font-size:13px;white-space:nowrap}
+.dist small{display:block;font-family:var(--f-body);font-size:11px;color:var(--ink-2)}
+.marks{display:flex;gap:4px;margin-top:6px}
+.mk{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:2px 8px;font-size:11.5px;cursor:pointer}
+.mk[aria-pressed="true"].drank{background:var(--amber);border-color:var(--amber);color:#fff}
+.mk[aria-pressed="true"].want{background:var(--shop);border-color:var(--shop);color:#fff}
+
+/* detail */
+.detail{padding:14px 16px 16px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.detail[hidden]{display:none}
+.detail-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.detail h3{margin:0;font-size:17px;line-height:1.35}
+.x{border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--ink-2);padding:0 2px}
+.kv{display:grid;grid-template-columns:5.5em 1fr;gap:4px 10px;margin:10px 0 0;font-size:12.5px}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0}
+.hours{font-family:var(--f-num);font-size:12px;white-space:pre-line}
+.score{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.score span{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:0 6px;font-size:11.5px}
+.note{font-size:12px;color:var(--ink-2);margin:8px 0 0}
+.detail a{color:var(--amber)}
+
+/* map overlays */
+.locbtn{position:absolute;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:8px 12px;font-size:12.5px;cursor:pointer}
+.hint{position:absolute;left:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:600;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px 10px;font-size:12px;color:var(--ink-2);max-width:60%}
+.pin{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff;font-family:var(--f-body)}
+.pin.gold{background:var(--gold)} .pin.silver{background:var(--silver)} .pin.bronze{background:var(--bronze)}
+.pin.none{background:var(--amber)}
+.pin.shop{background:var(--shop);border-radius:7px}
+.pin.drank{outline:3px solid var(--open);outline-offset:1px}
+.pin.sel{transform:scale(1.25)}
+.pinwrap{position:relative;width:28px;height:28px}
+.lbl{position:absolute;top:50%;left:31px;transform:translateY(-50%);white-space:nowrap;display:none;
+  font-size:11.5px;font-weight:700;line-height:1.2;letter-spacing:.01em;
+  text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff}
+.lbl.on{display:block}
+.lbl.left{left:auto;right:31px}
+.lbl.l-brew{color:#8A4A08} .lbl.l-shop{color:#1D5156}
+.me{width:16px;height:16px;border-radius:50%;background:#2F74D0;border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,116,208,.25)}
+.cl{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-family:var(--f-num);font-size:13px;border:3px solid var(--surface);box-shadow:var(--shadow)}
+.leaflet-container{font-family:var(--f-body)}
+.leaflet-control-attribution{font-size:10px}
+.map-wrap{position:relative;grid-column:1;grid-row:2}
+.map-wrap #map{position:absolute;inset:0}
+
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr 46%}
+  .map-wrap{grid-column:1;grid-row:2}
+  .panel{grid-column:1;grid-row:3;border-left:0;border-top:1px solid var(--line)}
+  .brand span{display:none}
+  .search{flex:1 1 100%;order:2}
+  .tally{width:100%;order:3}
+  .filters{order:4;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+  .filters .chips{flex-wrap:nowrap;flex-shrink:0}
+  .filters .chip{white-space:nowrap}
+  .hint{max-width:calc(100% - 150px)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand"><h1>Brewery GO</h1><span>東京近郊のクラフトビール醸造所と酒屋</span></div>
+    <div class="search">
+      <input type="search" id="q" placeholder="店名・地名で検索" autocomplete="off" aria-label="店名・地名で検索">
+    </div>
+    <div class="tally" id="tally"></div>
+    <div class="filters">
+      <div class="chips" role="group" aria-label="種別">
+        <button class="chip" id="f-brew" aria-pressed="true"><span class="dot" style="background:var(--amber)"></span>醸造所</button>
+        <button class="chip" id="f-shop" aria-pressed="true"><span class="dot" style="background:var(--shop);border-radius:2px"></span>酒屋</button>
+      </div>
+      <div class="chips" role="group" aria-label="ランク">
+        <button class="chip rk" id="r-gold" aria-pressed="false"><span class="dot" style="background:var(--gold)"></span>金</button>
+        <button class="chip rk" id="r-silver" aria-pressed="false"><span class="dot" style="background:var(--silver)"></span>銀</button>
+        <button class="chip rk" id="r-bronze" aria-pressed="false"><span class="dot" style="background:var(--bronze)"></span>銅</button>
+        <button class="chip rk" id="r-none" aria-pressed="false"><span class="dot" style="border:1.5px solid var(--amber)"></span>ランクなし</button>
+      </div>
+      <div class="chips" role="group" aria-label="記録と営業">
+        <button class="chip" id="f-drank" aria-pressed="false">飲んだ</button>
+        <button class="chip" id="f-new" aria-pressed="false">まだ飲んでない</button>
+        <button class="chip" id="f-want" aria-pressed="false">行きたい</button>
+        <button class="chip" id="f-open" aria-pressed="false">営業中</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="map-wrap">
+    <div id="map" aria-label="地図"></div>
+    <div class="hint" id="hint"></div>
+    <button class="locbtn" id="locate">現在地を取得</button>
+  </div>
+
+  <aside class="panel" aria-label="近くの店">
+    <div class="detail" id="detail" hidden></div>
+    <div class="panel-head"><h2 id="count">この範囲の店</h2><small>近い順</small></div>
+    <div class="list" id="list"></div>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
+<script src="data/places.js"></script>
+<script>
+(function(){
+'use strict';
+var CHECKED='2026-09-23';
+var DAYS='日月火水木金土';
+var STORE='beersanpo-v1';
+
+/* ---------- 営業時間 ---------- */
+// "火-金15:00-23:00;土日12:00-22:00" → {0:[[open,close],...],...}
+function parseHours(spec){
+  if(!spec) return null;
+  var out={}; for(var d=0;d<7;d++) out[d]=[];
+  spec.split(';').forEach(function(part){
+    var m=part.match(/^([日月火水木金土\-]+)(.+)$/); if(!m) return;
+    var days=[], s=m[1];
+    for(var i=0;i<s.length;i++){
+      if(s[i+1]==='-'){ var a=DAYS.indexOf(s[i]), b=DAYS.indexOf(s[i+2]); for(var k=a;k!==(b+1)%7;k=(k+1)%7) days.push(k); i+=2; }
+      else days.push(DAYS.indexOf(s[i]));
+    }
+    var spans=m[2].split(',').map(function(r){var t=r.split('-');return [toMin(t[0]),toMin(t[1])];});
+    days.forEach(function(d){ out[d]=out[d].concat(spans); });
+  });
+  return out;
+}
+function toMin(t){var p=t.split(':');return +p[0]*60+ +p[1];}
+function fmt(m){return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
+function openState(p,now){
+  if(!p.hours) return {k:'unknown',t:'営業時間 要確認'};
+  var d=now.getDay(), m=now.getHours()*60+now.getMinutes();
+  var today=p.hours[d]||[];
+  for(var i=0;i<today.length;i++){ if(m>=today[i][0]&&m<today[i][1]) return {k:'open',t:'営業中 〜'+fmt(today[i][1])}; }
+  for(i=0;i<today.length;i++){ if(m<today[i][0]) return {k:'closed',t:'準備中 '+fmt(today[i][0])+'〜'}; }
+  for(var n=1;n<=7;n++){ var dd=(d+n)%7, s=p.hours[dd]||[]; if(s.length) return {k:'closed',t:'営業時間外 次は'+(n===1?'明日':DAYS[dd]+'曜')+' '+fmt(s[0][0])+'〜'}; }
+  return {k:'closed',t:'休業'};
+}
+function hoursText(p){
+  if(!p.hours) return '要確認';
+  var lines=[];
+  for(var i=1;i<=7;i++){ var d=i%7, s=p.hours[d]; lines.push(DAYS[d]+'  '+(s.length? s.map(function(x){return fmt(x[0])+'-'+fmt(x[1]);}).join(', ') : '休')); }
+  return lines.join('\n');
+}
+
+/* ---------- ランク ---------- */
+// 受賞: 金3・銀2・銅1点（WBCは2倍） / 創業: 1999年以前+3、2000-2014年+1 / 手動補正
+function scoreOf(p){
+  var parts=[], total=0;
+  (p.awards||[]).forEach(function(a){
+    var w=a.c==='WBC'?2:1, pts=(a.g*3+a.s*2+a.b)*w; total+=pts;
+    parts.push(a.c+' 金'+a.g+'銀'+a.s+'銅'+a.b+' → '+pts+'点');
+  });
+  if(p.founded){ var h=p.founded<=1999?3:p.founded<=2014?1:0; if(h){total+=h;parts.push('創業'+p.founded+'年 → '+h+'点');} }
+  if(p.adj){ total+=p.adj; parts.push('手動補正 '+(p.adj>0?'+':'')+p.adj+'点'); }
+  return {total:total,parts:parts};
+}
+function tierOf(s){ return s>=12?'gold':s>=6?'silver':s>=3?'bronze':'none'; }
+var TIER_JP={gold:'金',silver:'銀',bronze:'銅',none:''};
+
+/* ---------- 記録 ---------- */
+var marks={drank:{},want:{}};
+try{ var raw=localStorage.getItem(STORE); if(raw) marks=Object.assign(marks,JSON.parse(raw)); }catch(e){}
+function save(){ try{ localStorage.setItem(STORE,JSON.stringify(marks)); }catch(e){} }
+
+/* ---------- データ準備 ---------- */
+var places=window.PLACES.map(function(p){
+  p.hours=parseHours(p.h);
+  if(p.type==='brewery'){ p.sc=scoreOf(p); p.tier=tierOf(p.sc.total); } else { p.tier='shop'; }
+  return p;
+});
+
+/* ---------- 地図 ---------- */
+var DEFAULT={lat:35.6581,lng:139.5751,label:'つつじヶ丘駅（仮の現在地）'};
+var me={lat:DEFAULT.lat,lng:DEFAULT.lng,label:DEFAULT.label};
+var map=L.map('map',{zoomControl:true,maxZoom:19,minZoom:5}).setView([me.lat,me.lng],12);
+var GSI_ATTR='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>';
+var bases={
+  // OpenFreeMap: APIキー不要のベクター地図（OSMデータ）
+  '地図（Googleマップ風）':L.maplibreGL({style:'https://tiles.openfreemap.org/styles/liberty',
+    attribution:'<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}),
+  '標準（道路・駅）':L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',{maxZoom:18,attribution:GSI_ATTR}),
+  '淡色':L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,attribution:GSI_ATTR}),
+  '航空写真':L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',{maxZoom:18,attribution:GSI_ATTR})
+};
+var GL_NAME='地図（Googleマップ風）', FALLBACK='標準（道路・駅）';
+var baseName=GL_NAME;
+try{ var sb=localStorage.getItem(STORE+'-base3'); if(sb&&bases[sb]) baseName=sb; }catch(e){}
+
+// ベクター地図の地名を日本語表記に
+function jaLabels(mm){
+  try{
+    mm.getStyle().layers.forEach(function(l){
+      if(l.type!=='symbol') return;
+      var tf=mm.getLayoutProperty(l.id,'text-field'); if(!tf) return;
+      var s=JSON.stringify(tf); if(s.indexOf('name')<0) return;
+      mm.setLayoutProperty(l.id,'text-field',['coalesce',['get','name:ja'],['get','name']]);
+    });
+  }catch(e){}
+}
+// ベクター地図が読めないときは地理院地図に切り替える
+function watchGL(layer){
+  var mm=layer.getMaplibreMap&&layer.getMaplibreMap(); if(!mm) return;
+  var ok=false, fell=false;
+  function fallback(){
+    if(ok||fell||!map.hasLayer(layer)) return; fell=true;
+    map.removeLayer(layer); bases[FALLBACK].addTo(map);
+    var h=document.getElementById('hint'); if(h) h.textContent='Googleマップ風の地図を読み込めなかったため、地理院の標準地図を表示しています。';
+  }
+  mm.on('style.load',function(){ ok=true; jaLabels(mm); });
+  mm.on('error',function(e){ if(!ok) fallback(); });
+  setTimeout(fallback,10000);
+}
+bases[GL_NAME].on('add',function(){ watchGL(bases[GL_NAME]); });
+bases[baseName].addTo(map);
+L.control.layers(bases,null,{position:'topright',collapsed:true}).addTo(map);
+map.on('baselayerchange',function(e){ try{ localStorage.setItem(STORE+'-base3',e.name); }catch(err){} });
+
+var meMarker=L.marker([me.lat,me.lng],{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16]}),zIndexOffset:1000,keyboard:false}).addTo(map);
+var cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:44,
+  iconCreateFunction:function(c){return L.divIcon({className:'',html:'<div class="cl">'+c.getChildCount()+'</div>',iconSize:[36,36]});}});
+map.addLayer(cluster);
+
+var selected=null, markerById={};
+function pinHtml(p){
+  var cls='pin '+(p.type==='shop'?'shop':p.tier)+(marks.drank[p.id]?' drank':'')+(selected===p.id?' sel':'');
+  var label=p.type==='shop'?'酒':(TIER_JP[p.tier]||'醸');
+  var pri=selected===p.id?0:({gold:1,silver:2,bronze:3,none:4,shop:5})[p.tier];
+  return '<div class="pinwrap" data-pri="'+pri+'"><div class="'+cls+'">'+label+'</div><span class="lbl '+(p.type==='shop'?'l-shop':'l-brew')+'">'+esc(shortName(p.name))+'</span></div>';
+}
+function shortName(n){ return n.replace(/（.*?）/g,'').trim(); }
+
+/* ---------- 店名ラベル（重なる所は隠し、拡大すると現れる） ---------- */
+var LABEL_ZOOM=13, rafId=0;
+function hit(a,b){ return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top; }
+function pad(r,m){ return {left:r.left-m,right:r.right+m,top:r.top-m,bottom:r.bottom+m}; }
+function layoutLabels(){
+  var wraps=[].slice.call(document.querySelectorAll('#map .pinwrap'));
+  wraps.forEach(function(w){ var l=w.querySelector('.lbl'); l.classList.remove('on','left'); });
+  if(map.getZoom()<LABEL_ZOOM) return;
+  var box=document.getElementById('map').getBoundingClientRect();
+  var pins=wraps.map(function(w){ return w.querySelector('.pin').getBoundingClientRect(); });
+  var order=wraps.map(function(w,i){return i;}).sort(function(a,b){return wraps[a].getAttribute('data-pri')-wraps[b].getAttribute('data-pri');});
+  // 地図上のボタン類とは重ねない
+  var placed=[].slice.call(document.querySelectorAll('#map .leaflet-control, #locate, #hint')).map(function(el){return el.getBoundingClientRect();});
+  order.forEach(function(i){
+    var l=wraps[i].querySelector('.lbl');
+    var sides=['','left'];
+    for(var s=0;s<sides.length;s++){
+      l.classList.add('on'); if(sides[s]) l.classList.add('left'); else l.classList.remove('left');
+      var r=pad(l.getBoundingClientRect(),2);
+      var ok=r.left>=box.left&&r.right<=box.right&&r.top>=box.top&&r.bottom<=box.bottom;
+      for(var j=0;ok&&j<pins.length;j++){ if(j!==i&&hit(r,pins[j])) ok=false; }
+      for(var k=0;ok&&k<placed.length;k++){ if(hit(r,placed[k])) ok=false; }
+      if(ok){ placed.push(r); return; }
+    }
+    l.classList.remove('on','left');
+  });
+}
+function scheduleLabels(){ cancelAnimationFrame(rafId); rafId=requestAnimationFrame(layoutLabels); }
+function iconFor(p){ return L.divIcon({className:'',html:pinHtml(p),iconSize:[28,28],iconAnchor:[14,14]}); }
+
+/* ---------- 距離 ---------- */
+function distM(a,b){
+  var R=6371000,toR=Math.PI/180,dLat=(b.lat-a.lat)*toR,dLng=(b.lng-a.lng)*toR;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function distText(m){
+  // 直線距離×1.3を道のり、分速80mで徒歩時間
+  var walk=Math.round(m*1.3/80);
+  if(m<1000) return {main:Math.round(m/10)*10+'m',sub:'徒歩'+Math.max(1,walk)+'分'};
+  if(walk<=40) return {main:(m/1000).toFixed(1)+'km',sub:'徒歩'+walk+'分'};
+  return {main:(m/1000).toFixed(m<10000?1:0)+'km',sub:'電車・車の距離'};
+}
+
+/* ---------- 絞り込み ---------- */
+var filt={brew:true,shop:true,open:false,want:false,drank:false,new:false};
+var ranks={gold:false,silver:false,bronze:false,none:false};
+var query='';
+function norm(s){ return String(s||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'')
+  .replace(/[ァ-ヶ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0x60);}); }
+function rankOn(){ return ranks.gold||ranks.silver||ranks.bronze||ranks.none; }
+function pass(p,now){
+  if(p.type==='brewery'&&!filt.brew) return false;
+  if(p.type==='shop'&&!filt.shop) return false;
+  if(rankOn()&&(p.type==='shop'||!ranks[p.tier])) return false;   // ランク指定時は酒屋を除く
+  if(filt.open&&openState(p,now).k!=='open') return false;
+  if(filt.want&&!marks.want[p.id]) return false;
+  if(filt.drank&&!marks.drank[p.id]) return false;
+  if(filt.new&&(p.type!=='brewery'||marks.drank[p.id])) return false;
+  if(query&&norm(p.name+' '+p.addr+' '+(p.yomi||'')).indexOf(query)<0) return false;
+  return true;
+}
+function refresh(){ renderMarkers(); renderList(); }
+['brew','shop','open','want','drank','new'].forEach(function(k){
+  var b=document.getElementById('f-'+k);
+  b.addEventListener('click',function(){
+    filt[k]=!filt[k];
+    // 「飲んだ」と「まだ飲んでない」はどちらか一方
+    var other=k==='drank'?'new':k==='new'?'drank':null;
+    if(other&&filt[k]){ filt[other]=false; document.getElementById('f-'+other).setAttribute('aria-pressed','false'); }
+    b.setAttribute('aria-pressed',filt[k]); refresh();
+  });
+});
+['gold','silver','bronze','none'].forEach(function(k){
+  var b=document.getElementById('r-'+k);
+  b.addEventListener('click',function(){ ranks[k]=!ranks[k]; b.setAttribute('aria-pressed',ranks[k]); refresh(); });
+});
+var qEl=document.getElementById('q');
+qEl.addEventListener('input',function(){ query=norm(qEl.value); refresh(); });
+qEl.addEventListener('keydown',function(e){
+  if(e.key!=='Enter') return;
+  var hits=places.filter(function(p){return pass(p,new Date());});
+  if(hits.length===1){ select(hits[0].id,true); }
+  else if(hits.length>1){ map.fitBounds(L.latLngBounds(hits.map(function(p){return [p.lat,p.lng];})).pad(0.2)); }
+});
+
+function renderMarkers(){
+  var now=new Date(); cluster.clearLayers(); markerById={};
+  places.forEach(function(p){
+    if(!pass(p,now)) return;
+    var m=L.marker([p.lat,p.lng],{icon:iconFor(p),title:p.name});
+    m.on('click',function(){ select(p.id,false); });
+    markerById[p.id]=m; cluster.addLayer(m);
+  });
+  scheduleLabels();
+}
+cluster.on('animationend',scheduleLabels);
+map.on('zoomend moveend resize',scheduleLabels);
+
+/* ---------- リスト ---------- */
+var listEl=document.getElementById('list'), countEl=document.getElementById('count');
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function badge(p){
+  if(p.type==='shop') return '<div class="badge b-shop" aria-label="酒屋">酒</div>';
+  return '<div class="badge b-'+p.tier+'" aria-label="'+(p.tier==='none'?'醸造所':TIER_JP[p.tier]+'ランクの醸造所')+'">'+(TIER_JP[p.tier]||'醸')+'</div>';
+}
+function renderList(){
+  var now=new Date(), b=map.getBounds();
+  // 検索中は地図の範囲に関係なく全件から探す
+  var rows=places.filter(function(p){return pass(p,now)&&(query||b.contains([p.lat,p.lng]));})
+    .map(function(p){return {p:p,d:distM(me,p)};}).sort(function(a,c){return a.d-c.d;});
+  countEl.textContent=(query?'検索結果 ':'この範囲の店 ')+rows.length+'件';
+  if(!rows.length){ listEl.innerHTML='<div class="empty">'+(query?'「'+esc(qEl.value)+'」に合う店はありません。絞り込みも確認してください。':'地図を動かすか縮小すると、店が現れます。絞り込みを外すと増えることもあります。')+'</div>'; return; }
+  listEl.innerHTML=rows.map(function(r){
+    var p=r.p, st=openState(p,now), dt=distText(r.d);
+    return '<div class="item'+(selected===p.id?' sel':'')+'" data-id="'+p.id+'" tabindex="0" role="button">'+badge(p)+
+      '<div><h3>'+esc(p.name)+'</h3><div class="meta"><span class="state '+st.k+'">'+st.t+'</span>'+
+      '<span>'+(p.type==='shop'?'酒屋':'醸造所')+(p.founded?' ・ '+p.founded+'年〜':'')+'</span></div>'+
+      '<div class="marks">'+
+        (p.type==='brewery'?'<button class="mk drank" data-mk="drank" aria-pressed="'+!!marks.drank[p.id]+'">飲んだ</button>':'')+
+        '<button class="mk want" data-mk="want" aria-pressed="'+!!marks.want[p.id]+'">行きたい</button></div></div>'+
+      '<div class="dist">'+dt.main+'<small>'+dt.sub+'</small></div></div>';
+  }).join('');
+}
+listEl.addEventListener('click',function(e){
+  var item=e.target.closest('.item'); if(!item) return;
+  var id=item.getAttribute('data-id'), mk=e.target.closest('.mk');
+  if(mk){ e.stopPropagation(); toggle(id,mk.getAttribute('data-mk')); return; }
+  select(id,true);
+});
+listEl.addEventListener('keydown',function(e){
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('item')){ e.preventDefault(); select(e.target.getAttribute('data-id'),true); }
+});
+function toggle(id,k){
+  if(marks[k][id]) delete marks[k][id]; else marks[k][id]=new Date().toISOString().slice(0,10);
+  save(); renderMarkers(); renderList(); renderTally(); if(selected===id) renderDetail();
+}
+
+/* ---------- 詳細 ---------- */
+var detailEl=document.getElementById('detail');
+function byId(id){ for(var i=0;i<places.length;i++) if(places[i].id===id) return places[i]; }
+function select(id,pan){
+  selected=id; var p=byId(id);
+  if(pan) map.setView([p.lat,p.lng],Math.max(map.getZoom(),15));
+  renderDetail(); renderMarkers(); renderList();
+}
+function renderDetail(){
+  var p=byId(selected); if(!p){ detailEl.hidden=true; return; }
+  var st=openState(p,new Date()), dt=distText(distM(me,p));
+  var rank='';
+  if(p.type==='brewery'){
+    rank='<dt>ランク</dt><dd>'+(p.tier==='none'?'なし':TIER_JP[p.tier])+'（'+p.sc.total+'点）<div class="score">'+
+      (p.sc.parts.length?p.sc.parts.map(function(s){return '<span>'+esc(s)+'</span>';}).join(''):'<span>加点なし</span>')+'</div></dd>';
+  }
+  detailEl.innerHTML='<div class="detail-top"><h3>'+esc(p.name)+'</h3><button class="x" id="close" aria-label="閉じる">×</button></div>'+
+    '<div class="meta"><span class="state '+st.k+'">'+st.t+'</span><span>'+dt.main+'・'+dt.sub+'</span></div>'+
+    '<div class="marks">'+(p.type==='brewery'?'<button class="mk drank" data-mk="drank" aria-pressed="'+!!marks.drank[p.id]+'">飲んだ</button>':'')+
+    '<button class="mk want" data-mk="want" aria-pressed="'+!!marks.want[p.id]+'">行きたい</button></div>'+
+    '<dl class="kv"><dt>種別</dt><dd>'+(p.type==='shop'?'酒屋':'醸造所')+'</dd>'+
+    '<dt>住所</dt><dd>'+esc(p.addr)+'</dd>'+
+    '<dt>創業</dt><dd>'+(p.founded?p.founded+'年':'不明')+(p.foundNote?'（'+esc(p.foundNote)+'）':'')+'</dd>'+
+    rank+
+    '<dt>営業時間</dt><dd class="hours">'+hoursText(p)+'</dd></dl>'+
+    (p.note?'<p class="note">'+esc(p.note)+'</p>':'')+
+    '<p class="note">祝日は未反映。最終確認 '+CHECKED+' ・ <a href="'+esc(p.src)+'" target="_blank" rel="noopener">情報元</a> ・ <a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+p.addr)+'" target="_blank" rel="noopener">Googleマップで開く</a></p>';
+  detailEl.hidden=false;
+  document.getElementById('close').onclick=function(){ selected=null; detailEl.hidden=true; renderMarkers(); renderList(); };
+  detailEl.querySelectorAll('.mk').forEach(function(b){ b.onclick=function(){ toggle(p.id,b.getAttribute('data-mk')); }; });
+}
+
+/* ---------- 集計 ---------- */
+function renderTally(){
+  var brews=places.filter(function(p){return p.type==='brewery';});
+  var drank=brews.filter(function(p){return marks.drank[p.id];}).length;
+  var want=places.filter(function(p){return marks.want[p.id];}).length;
+  var gold=brews.filter(function(p){return p.tier==='gold';}), gd=gold.filter(function(p){return marks.drank[p.id];}).length;
+  document.getElementById('tally').innerHTML='<span>飲んだ醸造所 <b>'+drank+'/'+brews.length+'</b></span><span>金ランク <b>'+gd+'/'+gold.length+'</b></span><span>行きたい <b>'+want+'</b></span>';
+}
+
+/* ---------- 現在地 ---------- */
+var hint=document.getElementById('hint');
+function setMe(lat,lng,label){
+  me={lat:lat,lng:lng,label:label}; meMarker.setLatLng([lat,lng]);
+  hint.textContent='現在地: '+label+'（地図を長押しで変更）';
+  renderList(); if(selected) renderDetail();
+}
+document.getElementById('locate').addEventListener('click',function(){
+  if(!navigator.geolocation){ hint.textContent='この環境では現在地を取得できません。地図を長押しして現在地を置いてください。'; return; }
+  hint.textContent='現在地を取得中…';
+  navigator.geolocation.getCurrentPosition(function(pos){
+    setMe(pos.coords.latitude,pos.coords.longitude,'GPS'); map.setView([me.lat,me.lng],14);
+  },function(){
+    hint.textContent='現在地を取得できませんでした。地図を長押し（右クリック）して現在地を置けます。';
+  },{enableHighAccuracy:true,timeout:10000});
+});
+map.on('contextmenu',function(e){ setMe(e.latlng.lat,e.latlng.lng,'地図上で指定'); });
+
+map.on('moveend',renderList);
+setInterval(function(){ renderList(); if(selected) renderDetail(); },60000);
+
+renderMarkers(); renderTally(); setMe(me.lat,me.lng,me.label);
+})();
+</script>
+
+</body>
+</html>
