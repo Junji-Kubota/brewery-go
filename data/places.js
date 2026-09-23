@@ -51,7 +51,7 @@ window.PLACES = [
 {id:"tegamisha",yomi:"てがみしゃ",type:"brewery",name:"TEGAMISHA BREWERY",addr:"東京都調布市下石原2-6-14 ラ・メゾン 1F",lat:35.654701,lng:139.530548,founded:2023,foundNote:"自家醸造の開始。店は2020年開業",
  h:"土日13:00-22:00",note:"調布市は土日祝のみと案内、平日夕方も営業とする情報もあり要確認。",src:"https://www.city.chofu.lg.jp/010040/p078195.html"},
 {id:"chofubw",yomi:"じゃくそんほーる",type:"brewery",name:"調布ビアワークス（JACKSON HOLE）",addr:"東京都調布市布田1-3-1",lat:35.654556,lng:139.544983,founded:null,
- h:"水木16:00-22:00;金16:00-23:00;土日11:30-22:00",note:"調布ビアワークスのビールを出す直営の立ち飲み。",src:"https://www.city.chofu.lg.jp/010040/p078195.html"},,
+ h:"水木16:00-22:00;金16:00-23:00;土日11:30-22:00",note:"調布ビアワークスのビールを出す直営の立ち飲み。",src:"https://www.city.chofu.lg.jp/010040/p078195.html"},
 // --- ビアEXPO2025（全国203社）掲載・東京近郊（2026-09-23追加。営業時間は未調査のものが多い） ---
 {"id":"nihaime","guide":true,"yomi":"にはいめ","type":"brewery","name":"2杯目のビール。","addr":"東京都中央区日本橋本町3-11-5 COMMISSARY NIHONBASHI 1F","lat":35.689209,"lng":139.777252,"founded":null,"h":"月-日11:30-22:00","src":"https://0423craft.beer/expo2025/"},
 {"id":"kanpai","guide":true,"yomi":"かんぱい","type":"brewery","name":"カンパイ！ブルーイング","addr":"東京都文京区関口1-28-12 リバーサイドテラス","lat":35.71048,"lng":139.72525,"founded":null,"h":null,"src":"https://0423craft.beer/expo2025/"},

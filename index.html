@@ -498,7 +498,7 @@ function renderDetail(){
     rank+
     '<dt>営業時間</dt><dd class="hours">'+hoursText(p)+'</dd></dl>'+
     (p.note?'<p class="note">'+esc(p.note)+'</p>':'')+
-    '<p class="note">祝日は未反映。最終確認 '+CHECKED+' ・ <a href="'+esc(p.src)+'" target="_blank" rel="noopener">情報元</a> ・ <a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+p.addr)+'" target="_blank" rel="noopener">Googleマップで開く</a></p>';
+    '<p class="note">祝日は未反映。最終確認 '+(p.checked||CHECKED)+' ・ <a href="'+esc(p.src)+'" target="_blank" rel="noopener">情報元</a> ・ <a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+p.addr)+'" target="_blank" rel="noopener">Googleマップで開く</a></p>';
   detailEl.hidden=false;
   document.getElementById('close').onclick=function(){ selected=null; detailEl.hidden=true; renderMarkers(); renderList(); };
   detailEl.querySelectorAll('.mk').forEach(function(b){ b.onclick=function(){ toggle(p.id,b.getAttribute('data-mk')); }; });
