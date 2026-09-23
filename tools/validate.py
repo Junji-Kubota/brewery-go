@@ -38,6 +38,9 @@ def main():
             errors.append(f"{tag}: service は shipping のみ")
         if p.get("service") == "shipping" and p.get("h"):
             errors.append(f"{tag}: 出荷専用なのに営業時間がある")
+        for b in p.get("beers", []) or []:
+            if not isinstance(b, dict) or not b.get("n"):
+                errors.append(f"{tag}: beers の形式が不正")
         for a in p.get("awards", []) or []:
             if a.get("c") not in ("JGBA", "IBC", "WBC"):
                 errors.append(f"{tag}: 未知の審査会 {a.get('c')}")

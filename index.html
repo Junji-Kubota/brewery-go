@@ -506,6 +506,7 @@ function renderDetail(){
     '<dt>住所</dt><dd>'+esc(p.addr)+'</dd>'+
     '<dt>創業</dt><dd>'+(p.founded?p.founded+'年':'不明')+(p.foundNote?'（'+esc(p.foundNote)+'）':'')+'</dd>'+
     rank+
+    (p.beers&&p.beers.length?'<dt>主なビール</dt><dd>'+p.beers.map(function(b){return esc(b.n)+(b.s?'<small>（'+esc(b.s)+'）</small>':'')+(b.a?' <span class="score"><span>'+esc(b.a)+'</span></span>':'');}).join('<br>')+'</dd>':'')+
     '<dt>営業時間</dt><dd class="hours">'+hoursText(p)+'</dd></dl>'+
     (p.note?'<p class="note">'+esc(p.note)+'</p>':'')+
     '<p class="note">祝日は未反映。'+(p.bulk?'一括登録・未確認':'最終確認 '+(p.checked||CHECKED))+' ・ <a href="'+esc(p.src)+'" target="_blank" rel="noopener">情報元</a> ・ <a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.name+' '+p.addr)+'" target="_blank" rel="noopener">Googleマップで開く</a></p>';
